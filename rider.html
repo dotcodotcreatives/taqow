@@ -1,0 +1,196 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8"/>
+<meta name="viewport" content="width=device-width, initial-scale=1"/>
+<title>TAQOW — Rider</title>
+
+<script>
+  const SUPABASE_URL      = "https://ziugllmczrxmzeygsrnd.supabase.co";
+  const SUPABASE_ANON_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InppdWdsbG1jenJ4bXpleWdzcm5kIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODIzMTkyMzYsImV4cCI6MjA5Nzg5NTIzNn0.zBSKepzk3DDwMr6aq_8c8NjQ8r_NO83tsxmlhaB9x-g";
+</script>
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+
+<style>
+  :root{
+    --ink:#15201B; --paper:#F4F6F3; --surface:#fff;
+    --brand:#0B6E4F; --brand-d:#075B41; --brand-soft:#E4F1EB;
+    --accent:#E8503A; --amber:#E8A23A; --amber-soft:#FBF0DC; --amber-d:#9a6a13;
+    --line:#E7EBE6; --muted:#7C8983;
+  }
+  *{box-sizing:border-box;margin:0}
+  body{font-family:system-ui,-apple-system,'Segoe UI',sans-serif;background:var(--paper);color:var(--ink)}
+  header{background:linear-gradient(180deg,#E8A23A,#d18f28);color:#fff;padding:16px 20px}
+  header .top{display:flex;align-items:center;gap:11px;max-width:760px;margin:0 auto}
+  header .logo{width:38px;height:38px;border-radius:11px;background:rgba(255,255,255,.2);display:grid;place-items:center;font-size:20px}
+  header h1{font-size:18px;font-weight:800}
+  header .sub{font-size:11.5px;color:#fff8ec;font-weight:600}
+  header .logout{margin-left:auto;background:rgba(255,255,255,.2);border:0;color:#fff;font:inherit;font-weight:700;font-size:12px;padding:7px 12px;border-radius:9px;cursor:pointer}
+
+  .wrap{max-width:760px;margin:0 auto;padding:20px}
+
+  .auth{max-width:380px;margin:50px auto;background:#fff;border:1px solid var(--line);border-radius:18px;padding:26px}
+  .auth h2{font-size:20px;font-weight:800;margin-bottom:4px}
+  .auth p{font-size:13px;color:var(--muted);font-weight:600;margin-bottom:18px}
+  .auth label{font-size:11px;font-weight:800;text-transform:uppercase;color:var(--muted);display:block;margin:0 0 6px}
+  .auth input{width:100%;border:1.5px solid var(--line);border-radius:11px;padding:12px;font:inherit;font-size:14px;font-weight:600;margin-bottom:14px;outline:0}
+  .auth input:focus{border-color:var(--amber)}
+  .auth button{width:100%;border:0;background:var(--amber);color:#fff;border-radius:12px;padding:14px;font:inherit;font-weight:800;font-size:15px;cursor:pointer}
+  .auth .switch{text-align:center;margin-top:14px;font-size:13px;font-weight:600;color:var(--muted)}
+  .auth .switch a{color:var(--amber-d);font-weight:800;cursor:pointer}
+  .auth .err{background:#fffaf8;border:1px solid #f1cabf;color:#8a3322;border-radius:10px;padding:10px;font-size:12.5px;font-weight:600;margin-bottom:14px}
+
+  .tabs{display:flex;gap:7px;margin:4px 0 16px;flex-wrap:wrap}
+  .tab{border:1.5px solid var(--line);background:#fff;border-radius:999px;padding:8px 14px;font-size:12.5px;font-weight:800;color:var(--muted);cursor:pointer}
+  .tab.on{background:var(--ink);color:#fff;border-color:var(--ink)}
+  .tab .n{background:var(--amber);color:#fff;font-size:10px;border-radius:999px;padding:1px 6px;margin-left:5px}
+
+  .job{background:#fff;border:1px solid var(--line);border-radius:16px;padding:15px;margin-bottom:13px}
+  .job .r1{display:flex;align-items:center;gap:9px}
+  .job .oid{font-weight:800;font-size:15px}
+  .st{font-size:10.5px;font-weight:800;padding:4px 9px;border-radius:999px}
+  .st-ready{background:var(--brand-soft);color:var(--brand-d)}.st-picked_up{background:var(--amber-soft);color:var(--amber-d)}.st-delivered{background:#eef1ee;color:var(--muted)}
+  .job .pay{margin-left:auto;font-weight:800;font-size:15px;color:var(--brand-d)}
+  .leg{display:flex;gap:10px;margin-top:12px}
+  .leg .ic{width:30px;height:30px;border-radius:9px;display:grid;place-items:center;font-size:15px;flex:none}
+  .leg.from .ic{background:var(--brand-soft)}.leg.to .ic{background:#FCE9E5}
+  .leg .k{font-size:10px;font-weight:800;text-transform:uppercase;color:var(--muted)}
+  .leg .v{font-weight:700;font-size:13px}
+  .legline{height:12px;border-left:2px dashed var(--line);margin:1px 0 1px 14px}
+  .items{margin-top:11px;border-top:1px dashed var(--line);padding-top:9px;font-size:12.5px;color:#46524c;font-weight:600}
+  .act{width:100%;margin-top:13px;border:0;border-radius:12px;padding:13px;font:inherit;font-weight:800;font-size:14px;cursor:pointer;color:#fff}
+  .act.accept{background:var(--amber)}.act.deliver{background:var(--brand)}
+  .done-lbl{margin-top:12px;text-align:center;font-weight:800;color:var(--muted);font-size:13px}
+
+  .bar{display:flex;align-items:center;margin-bottom:14px}
+  .bar h2{font-size:18px;font-weight:800}
+  .refresh{margin-left:auto;border:1.5px solid var(--line);background:#fff;border-radius:10px;padding:8px 13px;font:inherit;font-weight:800;font-size:12.5px;cursor:pointer}
+  .empty{text-align:center;color:var(--muted);font-weight:600;padding:40px;font-size:14px}
+</style>
+</head>
+<body>
+  <div id="app"></div>
+
+<script>
+const db = supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+const EMOJI = { Chicken:'🍗', Mutton:'🥩', 'Seer Fish':'🐟', Prawns:'🦐' };
+let session=null, me=null, available=[], mine=[], itemsByOrder={}, hubsById={}, filter='available', poll=null;
+const app = () => document.getElementById('app');
+const money = n => '₹'+Number(n||0).toLocaleString('en-IN');
+
+(async function(){
+  const { data } = await db.auth.getSession();
+  session = data.session;
+  if (session){ me = session.user; enterDashboard(); } else showAuth();
+})();
+
+// ---------- auth ----------
+let mode='login';
+function showAuth(err){
+  clearInterval(poll);
+  app().innerHTML = `
+   <header><div class="top"><div class="logo">🛵</div><div><h1>TAQOW Rider</h1><div class="sub">Delivery login</div></div></div></header>
+   <div class="auth">
+     <h2>${mode==='login'?'Log in':'Create rider account'}</h2>
+     <p>${mode==='login'?'Sign in to see deliveries.':'Sign up once to start delivering.'}</p>
+     ${err?`<div class="err">${err}</div>`:''}
+     <label>Email</label><input id="email" type="email" placeholder="rider@example.com">
+     <label>Password</label><input id="pass" type="password" placeholder="At least 6 characters">
+     <button onclick="${mode==='login'?'doLogin()':'doSignup()'}">${mode==='login'?'Log in':'Create account'}</button>
+     <div class="switch">${mode==='login'
+        ? `New rider? <a onclick="setMode('signup')">Create an account</a>`
+        : `Already have one? <a onclick="setMode('login')">Log in</a>`}</div>
+   </div>`;
+}
+function setMode(m){ mode=m; showAuth(); }
+async function doSignup(){
+  const email=document.getElementById('email').value.trim(), password=document.getElementById('pass').value;
+  if(!email||password.length<6){ showAuth('Enter an email and a 6+ character password.'); return; }
+  const { data, error } = await db.auth.signUp({ email, password });
+  if(error){ showAuth(error.message); return; }
+  if(!data.session){ showAuth('Account made, but email confirmation is ON. Turn it off in Supabase → Authentication → Providers → Email, then log in.'); mode='login'; return; }
+  session=data.session; me=session.user; enterDashboard();
+}
+async function doLogin(){
+  const email=document.getElementById('email').value.trim(), password=document.getElementById('pass').value;
+  const { data, error } = await db.auth.signInWithPassword({ email, password });
+  if(error){ showAuth(error.message); return; }
+  session=data.session; me=session.user; enterDashboard();
+}
+async function doLogout(){ clearInterval(poll); await db.auth.signOut(); session=null; me=null; showAuth(); }
+
+// ---------- dashboard ----------
+async function enterDashboard(){
+  await db.from('profiles').upsert({ id:me.id, role:'rider', full_name:me.email });
+  const { data:hubs } = await db.from('hubs').select('id,name,address');
+  hubsById = {}; (hubs||[]).forEach(h=>hubsById[h.id]=h);
+  await loadJobs();
+  clearInterval(poll); poll=setInterval(loadJobs, 12000);
+}
+async function loadJobs(){
+  const av = await db.from('orders').select('*').eq('status','ready').is('rider_id', null).order('created_at',{ascending:false});
+  const mn = await db.from('orders').select('*').eq('rider_id', me.id).order('created_at',{ascending:false});
+  available = av.data || []; mine = mn.data || [];
+  const ids = [...available, ...mine].map(o=>o.id);
+  itemsByOrder={};
+  if(ids.length){
+    const { data:items } = await db.from('order_items').select('*').in('order_id', ids);
+    (items||[]).forEach(it=>{ (itemsByOrder[it.order_id] ||= []).push(it); });
+  }
+  render();
+}
+
+function render(){
+  const activeMine = mine.filter(o=>['picked_up','out_for_delivery'].includes(o.status));
+  const doneMine   = mine.filter(o=>['delivered','closed'].includes(o.status));
+  const list = filter==='available' ? available : filter==='active' ? activeMine : doneMine;
+
+  app().innerHTML = `
+   <header><div class="top"><div class="logo">🛵</div>
+     <div><h1>Rider</h1><div class="sub">${me.email}</div></div>
+     <button class="logout" onclick="doLogout()">Log out</button></div></header>
+   <div class="wrap">
+     <div class="tabs">
+       <div class="tab ${filter==='available'?'on':''}" onclick="setFilter('available')">Available <span class="n">${available.length}</span></div>
+       <div class="tab ${filter==='active'?'on':''}" onclick="setFilter('active')">My delivery <span class="n">${activeMine.length}</span></div>
+       <div class="tab ${filter==='done'?'on':''}" onclick="setFilter('done')">Delivered</div>
+     </div>
+     <div class="bar"><h2>${({available:'Ready to pick up',active:'On the way',done:'Completed'})[filter]}</h2>
+       <button class="refresh" onclick="loadJobs()">↻ Refresh</button></div>
+     <div id="list"></div>
+   </div>`;
+
+  const el = document.getElementById('list');
+  if(!list.length){ el.innerHTML = `<div class="empty">${filter==='available'?'No orders ready for pickup right now.':'Nothing here yet.'}</div>`; return; }
+
+  el.innerHTML = list.map(o=>{
+    const hub = hubsById[o.hub_id] || {name:'Hub',address:''};
+    const its = itemsByOrder[o.id]||[];
+    const stCls = ({ready:'st-ready',picked_up:'st-picked_up',out_for_delivery:'st-picked_up',delivered:'st-delivered'})[o.status]||'st-delivered';
+    let action='';
+    if(o.status==='ready')        action=`<button class="act accept" onclick="setStatus('${o.id}','picked_up',true)">Accept & collect from hub</button>`;
+    else if(o.status==='picked_up'||o.status==='out_for_delivery') action=`<button class="act deliver" onclick="setStatus('${o.id}','delivered')">Mark delivered ✓</button>`;
+    else action=`<div class="done-lbl">Delivered ✓</div>`;
+    return `<div class="job">
+      <div class="r1"><span class="oid">#${o.id.slice(0,8)}</span><span class="st ${stCls}">${o.status.replace('_',' ').toUpperCase()}</span><span class="pay">${money(o.total)}</span></div>
+      <div class="leg from"><div class="ic">🏪</div><div><div class="k">Pick up from</div><div class="v">${hub.name}</div><div class="k" style="text-transform:none;color:var(--muted)">${hub.address||''}</div></div></div>
+      <div class="legline"></div>
+      <div class="leg to"><div class="ic">🏠</div><div><div class="k">Deliver to</div><div class="v">${o.delivery_addr||''}</div><div class="k" style="text-transform:none;color:var(--muted)">📍 ${o.delivery_pincode||''}</div></div></div>
+      <div class="items">${its.map(i=>`${EMOJI[i.name]||'🍖'} ${i.name} ×${i.qty}`).join(' · ')||''}</div>
+      ${action}
+    </div>`;
+  }).join('');
+}
+
+function setFilter(f){ filter=f; render(); }
+async function setStatus(id, status, assign){
+  const patch = { status };
+  if(assign) patch.rider_id = me.id;
+  const { error } = await db.from('orders').update(patch).eq('id', id);
+  if(error){ alert(error.message); return; }
+  if(status==='picked_up') filter='active';
+  await loadJobs();
+}
+</script>
+</body>
+</html>
