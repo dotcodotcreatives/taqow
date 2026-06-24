@@ -1,0 +1,204 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8"/>
+<meta name="viewport" content="width=device-width, initial-scale=1"/>
+<title>TAQOW — Fresh meat & fish</title>
+
+<!-- ============================================================
+     PASTE THE SAME TWO SUPABASE KEYS YOU USED BEFORE
+     Supabase -> Project Settings (gear) -> API
+       • Project URL  -> SUPABASE_URL
+       • anon public  -> SUPABASE_ANON_KEY
+     ============================================================ -->
+<script>
+  const SUPABASE_URL      = "https://ziugllmczrxmzeygsrnd.supabase.co/rest/";
+  const SUPABASE_ANON_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InppdWdsbG1jenJ4bXpleWdzcm5kIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODIzMTkyMzYsImV4cCI6MjA5Nzg5NTIzNn0.zBSKepzk3DDwMr6aq_8c8NjQ8r_NO83tsxmlhaB9x-g";
+</script>
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+
+<style>
+  :root{
+    --ink:#15201B; --paper:#FBF8F3; --surface:#fff;
+    --brand:#0B6E4F; --brand-d:#075B41; --brand-soft:#E4F1EB;
+    --accent:#E8503A; --accent-soft:#FCE9E5; --line:#ECE7DF; --muted:#7C8983;
+  }
+  *{box-sizing:border-box;margin:0}
+  body{font-family:system-ui,-apple-system,'Segoe UI',sans-serif;background:var(--paper);color:var(--ink);padding-bottom:160px}
+  header{background:linear-gradient(180deg,#0B6E4F,#0a6147);color:#fff;padding:18px 20px 22px}
+  header .top{display:flex;align-items:center;gap:10px;max-width:820px;margin:0 auto}
+  header .logo{width:38px;height:38px;border-radius:11px;background:rgba(255,255,255,.18);display:grid;place-items:center;font-size:20px}
+  header h1{font-size:20px;font-weight:800}
+  header p{font-size:12.5px;color:#bfe6d6;font-weight:600;margin-top:1px}
+  .wrap{max-width:820px;margin:0 auto;padding:0 20px}
+  h2{font-size:18px;font-weight:800;margin:22px 0 14px}
+  .grid{display:grid;grid-template-columns:1fr 1fr;gap:14px}
+  @media(min-width:620px){.grid{grid-template-columns:1fr 1fr 1fr}}
+  .card{background:var(--surface);border:1px solid var(--line);border-radius:16px;padding:12px}
+  .card .ph{height:84px;border-radius:12px;background:var(--brand-soft);display:grid;place-items:center;font-size:38px;margin-bottom:10px}
+  .card .nm{font-weight:800;font-size:14px}
+  .card .price{color:var(--brand-d);font-weight:800;font-size:15px;margin-top:3px}
+  .card select{width:100%;margin-top:8px;border:1.5px solid var(--line);border-radius:9px;padding:7px;font:inherit;font-size:12.5px;font-weight:600;background:#fff}
+  .card .addrow{display:flex;gap:7px;margin-top:8px}
+  .card .qty{width:54px;border:1.5px solid var(--line);border-radius:9px;padding:7px;font:inherit;font-weight:700;text-align:center}
+  .card button{flex:1;border:0;background:var(--brand);color:#fff;border-radius:9px;padding:8px;font:inherit;font-weight:800;font-size:12.5px;cursor:pointer}
+  .card button:active{transform:translateY(1px)}
+
+  .cartbar{position:fixed;left:0;right:0;bottom:0;background:#fff;border-top:1px solid var(--line);padding:14px 20px;box-shadow:0 -10px 30px -18px rgba(0,0,0,.3)}
+  .cartbar .inner{max-width:820px;margin:0 auto}
+  .citem{display:flex;align-items:center;gap:8px;font-size:13px;font-weight:600;padding:3px 0}
+  .citem .x{margin-left:auto;color:var(--accent);cursor:pointer;font-weight:800}
+  .checkout{display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-top:10px}
+  .checkout input{border:1.5px solid var(--line);border-radius:10px;padding:11px;font:inherit;font-size:13px;font-weight:600}
+  .checkout input.full{grid-column:1 / -1}
+  .placebtn{grid-column:1 / -1;border:0;background:var(--accent);color:#fff;border-radius:12px;padding:14px;font:inherit;font-weight:800;font-size:15px;cursor:pointer;margin-top:2px}
+  .placebtn:disabled{background:#e7ebe6;color:#aab4ae}
+  .totline{display:flex;justify-content:space-between;font-weight:800;font-size:15px;margin-top:8px}
+
+  .msg{background:#fff;border:1px solid var(--line);border-radius:14px;padding:16px;margin-top:18px;font-size:13.5px;line-height:1.6}
+  .msg.err{border-color:#f1cabf;background:#fffaf8;color:#8a3322}
+  .ok{background:var(--brand-soft);border:1px solid #bfe0cf;border-radius:14px;padding:18px;text-align:center;margin-top:18px}
+  .ok .big{font-size:40px}.ok h3{font-size:19px;font-weight:800;margin:6px 0 4px;color:var(--brand-d)}
+  .ok p{font-size:13px;color:#3f6b58;font-weight:600}
+</style>
+</head>
+<body>
+  <header>
+    <div class="top"><div class="logo">🥩</div>
+      <div><h1>TAQOW</h1><p>Fresh meat & fish · delivered from your nearest hub</p></div>
+    </div>
+  </header>
+
+  <div class="wrap">
+    <h2>Shop fresh</h2>
+    <div class="grid" id="products"></div>
+    <div id="status"></div>
+  </div>
+
+  <div class="cartbar" id="cartbar" style="display:none">
+    <div class="inner">
+      <div id="cartItems"></div>
+      <div class="totline"><span>Total</span><span id="cartTotal">₹0</span></div>
+      <div class="checkout">
+        <input class="full" id="cName" placeholder="Your name">
+        <input id="cPhone" placeholder="Phone">
+        <input id="cPin" placeholder="Pincode (try 691001)">
+        <input class="full" id="cAddr" placeholder="Delivery address">
+        <button class="placebtn" id="placeBtn" onclick="placeOrder()">Place order (Cash on delivery)</button>
+      </div>
+    </div>
+  </div>
+
+<script>
+const EMOJI = { Chicken:'🍗', Mutton:'🥩', Fish:'🐟', Prawns:'🦐', Eggs:'🥚' };
+let db, cart = [];
+function money(n){ return '₹' + Number(n).toLocaleString('en-IN'); }
+
+async function init(){
+  const statusEl = document.getElementById('status');
+  if (SUPABASE_URL.includes('PASTE') || SUPABASE_ANON_KEY.includes('PASTE')){
+    statusEl.innerHTML = `<div class="msg err">⚠️ Paste your Supabase URL and anon key at the top of this file, then refresh.</div>`;
+    return;
+  }
+  db = supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+  try{
+    const { data, error } = await db
+      .from('hub_inventory')
+      .select('price, in_stock, products(id, name, category, cut_options, unit)')
+      .eq('in_stock', true);
+    if (error) throw error;
+
+    const byProduct = {};
+    (data || []).forEach(row => {
+      const p = row.products; if (!p) return;
+      if (!byProduct[p.id] || row.price < byProduct[p.id].price)
+        byProduct[p.id] = { ...p, price: row.price };
+    });
+    const items = Object.values(byProduct);
+    if (!items.length){
+      statusEl.innerHTML = `<div class="msg">No stocked products yet. Did you run the hub + inventory SQL?</div>`; return;
+    }
+    document.getElementById('products').innerHTML = items.map(p => `
+      <div class="card">
+        <div class="ph">${EMOJI[p.category] || '🍖'}</div>
+        <div class="nm">${p.name}</div>
+        <div class="price">${money(p.price)} <span style="color:var(--muted);font-weight:600;font-size:11px">/ ${p.unit||''}</span></div>
+        <select id="cut-${p.id}">${(p.cut_options||['Standard']).map(c=>`<option>${c}</option>`).join('')}</select>
+        <div class="addrow">
+          <input class="qty" id="qty-${p.id}" type="number" min="1" value="1">
+          <button onclick='addToCart(${JSON.stringify(p).replace(/'/g,"&#39;")})'>Add</button>
+        </div>
+      </div>`).join('');
+  }catch(err){
+    statusEl.innerHTML = `<div class="msg err">⚠️ Couldn't load products.<br>${err.message||err}</div>`;
+  }
+}
+
+function addToCart(p){
+  const cut = document.getElementById('cut-'+p.id).value;
+  const qty = Math.max(1, parseInt(document.getElementById('qty-'+p.id).value)||1);
+  cart.push({ product_id:p.id, name:p.name, cut, qty, price:p.price, unit:p.unit });
+  renderCart();
+}
+function removeFromCart(i){ cart.splice(i,1); renderCart(); }
+function renderCart(){
+  const bar = document.getElementById('cartbar');
+  if (!cart.length){ bar.style.display='none'; return; }
+  bar.style.display='block';
+  document.getElementById('cartItems').innerHTML = cart.map((c,i)=>`
+    <div class="citem">${EMOJI[c.name?.split(' ')[0]]||'🍖'} ${c.name} · ${c.cut} × ${c.qty}
+      <span>${money(c.price*c.qty)}</span><span class="x" onclick="removeFromCart(${i})">✕</span></div>`).join('');
+  document.getElementById('cartTotal').textContent = money(cart.reduce((s,c)=>s+c.price*c.qty,0));
+}
+
+async function placeOrder(){
+  const name = document.getElementById('cName').value.trim();
+  const phone= document.getElementById('cPhone').value.trim();
+  const pin  = document.getElementById('cPin').value.trim();
+  const addr = document.getElementById('cAddr').value.trim();
+  const btn  = document.getElementById('placeBtn');
+  const statusEl = document.getElementById('status');
+  if (!name || !phone || !pin || !addr){ alert('Please fill name, phone, pincode and address.'); return; }
+  btn.disabled = true; btn.textContent = 'Finding your nearest hub…';
+  try{
+    // ---- THE ROUTER (simple MVP version) ----
+    const { data: hubs, error: hubErr } = await db
+      .from('hubs').select('*')
+      .eq('status','active').eq('is_online', true)
+      .contains('service_pincodes', [pin]);
+    if (hubErr) throw hubErr;
+    if (!hubs || !hubs.length){
+      statusEl.innerHTML = `<div class="msg err">😔 We don't deliver to ${pin} yet. (Try 691001 — your sample hub serves it.)</div>`;
+      btn.disabled=false; btn.textContent='Place order (Cash on delivery)'; return;
+    }
+    const hub = hubs[0];  // nearest-by-distance can be added later once we capture GPS
+    const total = cart.reduce((s,c)=>s+c.price*c.qty,0);
+
+    const { data: order, error: oErr } = await db.from('orders').insert({
+      hub_id: hub.id, status:'routed',
+      delivery_addr: `${name}, ${phone}, ${addr}`,
+      delivery_pincode: pin, subtotal: total, total: total, payment_status:'cod'
+    }).select().single();
+    if (oErr) throw oErr;
+
+    const { error: iErr } = await db.from('order_items').insert(
+      cart.map(c => ({ order_id: order.id, product_id: c.product_id, name: c.name,
+                       cut: c.cut, qty: c.qty, unit_price: c.price, est_weight: c.unit })));
+    if (iErr) throw iErr;
+
+    cart = []; renderCart();
+    document.getElementById('cartbar').style.display='none';
+    statusEl.innerHTML = `<div class="ok"><div class="big">✅</div>
+      <h3>Order placed!</h3>
+      <p>Arriving from your nearest hub · order #${order.id.slice(0,8)}</p>
+      <p style="margin-top:6px;opacity:.7">(routed to: ${hub.name} — you can hide this later)</p></div>`;
+    statusEl.scrollIntoView({behavior:'smooth'});
+  }catch(err){
+    statusEl.innerHTML = `<div class="msg err">⚠️ Couldn't place the order.<br>${err.message||err}</div>`;
+    btn.disabled=false; btn.textContent='Place order (Cash on delivery)';
+  }
+}
+init();
+</script>
+</body>
+</html>
