@@ -5,12 +5,6 @@
 <meta name="viewport" content="width=device-width, initial-scale=1"/>
 <title>TAQOW — Fresh meat & fish</title>
 
-<!-- ============================================================
-     PASTE THE SAME TWO SUPABASE KEYS YOU USED BEFORE
-     Supabase -> Project Settings (gear) -> API
-       • Project URL  -> SUPABASE_URL
-       • anon public  -> SUPABASE_ANON_KEY
-     ============================================================ -->
 <script>
   const SUPABASE_URL      = "https://ziugllmczrxmzeygsrnd.supabase.co";
   const SUPABASE_ANON_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InppdWdsbG1jenJ4bXpleWdzcm5kIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODIzMTkyMzYsImV4cCI6MjA5Nzg5NTIzNn0.zBSKepzk3DDwMr6aq_8c8NjQ8r_NO83tsxmlhaB9x-g";
@@ -56,6 +50,7 @@
   .totline{display:flex;justify-content:space-between;font-weight:800;font-size:15px;margin-top:8px}
 
   .msg{background:#fff;border:1px solid var(--line);border-radius:14px;padding:16px;margin-top:18px;font-size:13.5px;line-height:1.6}
+  .msg small{color:var(--muted)}
   .msg.err{border-color:#f1cabf;background:#fffaf8;color:#8a3322}
   .ok{background:var(--brand-soft);border:1px solid #bfe0cf;border-radius:14px;padding:18px;text-align:center;margin-top:18px}
   .ok .big{font-size:40px}.ok h3{font-size:19px;font-weight:800;margin:6px 0 4px;color:var(--brand-d)}
@@ -101,23 +96,41 @@ async function init(){
     return;
   }
   db = supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
-  try{
-    const { data, error } = await db
-      .from('hub_inventory')
-      .select('price, in_stock, products(id, name, category, cut_options, unit)')
-      .eq('in_stock', true);
-    if (error) throw error;
 
-    const byProduct = {};
-    (data || []).forEach(row => {
-      const p = row.products; if (!p) return;
-      if (!byProduct[p.id] || row.price < byProduct[p.id].price)
-        byProduct[p.id] = { ...p, price: row.price };
+  try{
+    // Fetch the two tables SEPARATELY (more reliable than asking Supabase
+    // to auto-join them), then match them up here in the code.
+    const [prodRes, invRes] = await Promise.all([
+      db.from('products').select('*'),
+      db.from('hub_inventory').select('product_id, price, in_stock').eq('in_stock', true)
+    ]);
+    if (prodRes.error) throw prodRes.error;
+    if (invRes.error) throw invRes.error;
+
+    const products = prodRes.data || [];
+    const inv = invRes.data || [];
+    console.log('TAQOW debug -> products:', products.length, 'inventory rows:', inv.length);
+
+    // cheapest price per product across hubs
+    const priceByProduct = {};
+    inv.forEach(r => {
+      if (priceByProduct[r.product_id] == null || r.price < priceByProduct[r.product_id])
+        priceByProduct[r.product_id] = r.price;
     });
-    const items = Object.values(byProduct);
+
+    // keep only products that are actually stocked somewhere
+    const items = products
+      .filter(p => priceByProduct[p.id] != null)
+      .map(p => ({ ...p, price: priceByProduct[p.id] }));
+
     if (!items.length){
-      statusEl.innerHTML = `<div class="msg">No stocked products yet. Did you run the hub + inventory SQL?</div>`; return;
+      statusEl.innerHTML = `<div class="msg">No products to show yet.
+        <br><small>Diagnostic: loaded ${products.length} products and ${inv.length} stock rows.
+        If both are 0, it's a read-permission (RLS) setting — tell Claude. If products &gt; 0 but
+        stock = 0, re-run the inventory SQL.</small></div>`;
+      return;
     }
+
     document.getElementById('products').innerHTML = items.map(p => `
       <div class="card">
         <div class="ph">${EMOJI[p.category] || '🍖'}</div>
@@ -161,17 +174,16 @@ async function placeOrder(){
   if (!name || !phone || !pin || !addr){ alert('Please fill name, phone, pincode and address.'); return; }
   btn.disabled = true; btn.textContent = 'Finding your nearest hub…';
   try{
-    // ---- THE ROUTER (simple MVP version) ----
     const { data: hubs, error: hubErr } = await db
       .from('hubs').select('*')
       .eq('status','active').eq('is_online', true)
       .contains('service_pincodes', [pin]);
     if (hubErr) throw hubErr;
     if (!hubs || !hubs.length){
-      statusEl.innerHTML = `<div class="msg err">😔 We don't deliver to ${pin} yet. (Try 691001 — your sample hub serves it.)</div>`;
+      statusEl.innerHTML = `<div class="msg err">😔 We don't deliver to ${pin} yet. (Try 691001.)</div>`;
       btn.disabled=false; btn.textContent='Place order (Cash on delivery)'; return;
     }
-    const hub = hubs[0];  // nearest-by-distance can be added later once we capture GPS
+    const hub = hubs[0];
     const total = cart.reduce((s,c)=>s+c.price*c.qty,0);
 
     const { data: order, error: oErr } = await db.from('orders').insert({
@@ -191,7 +203,7 @@ async function placeOrder(){
     statusEl.innerHTML = `<div class="ok"><div class="big">✅</div>
       <h3>Order placed!</h3>
       <p>Arriving from your nearest hub · order #${order.id.slice(0,8)}</p>
-      <p style="margin-top:6px;opacity:.7">(routed to: ${hub.name} — you can hide this later)</p></div>`;
+      <p style="margin-top:6px;opacity:.7">(routed to: ${hub.name})</p></div>`;
     statusEl.scrollIntoView({behavior:'smooth'});
   }catch(err){
     statusEl.innerHTML = `<div class="msg err">⚠️ Couldn't place the order.<br>${err.message||err}</div>`;
