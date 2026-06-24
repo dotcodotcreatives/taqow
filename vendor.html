@@ -1,0 +1,226 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8"/>
+<meta name="viewport" content="width=device-width, initial-scale=1"/>
+<title>TAQOW — Hub (vendor)</title>
+
+<script>
+  const SUPABASE_URL      = "https://ziugllmczrxmzeygsrnd.supabase.co";
+  const SUPABASE_ANON_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InppdWdsbG1jenJ4bXpleWdzcm5kIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODIzMTkyMzYsImV4cCI6MjA5Nzg5NTIzNn0.zBSKepzk3DDwMr6aq_8c8NjQ8r_NO83tsxmlhaB9x-g";
+</script>
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+
+<style>
+  :root{
+    --ink:#15201B; --paper:#F4F6F3; --surface:#fff;
+    --brand:#0B6E4F; --brand-d:#075B41; --brand-soft:#E4F1EB;
+    --accent:#E8503A; --amber:#E8A23A; --amber-soft:#FBF0DC; --amber-d:#9a6a13;
+    --blue:#2f5bd0; --blue-soft:#e7eefc;
+    --line:#E7EBE6; --muted:#7C8983;
+  }
+  *{box-sizing:border-box;margin:0}
+  body{font-family:system-ui,-apple-system,'Segoe UI',sans-serif;background:var(--paper);color:var(--ink)}
+  header{background:linear-gradient(180deg,#0B6E4F,#0a6147);color:#fff;padding:16px 20px}
+  header .top{display:flex;align-items:center;gap:11px;max-width:760px;margin:0 auto}
+  header .logo{width:38px;height:38px;border-radius:11px;background:rgba(255,255,255,.18);display:grid;place-items:center;font-size:20px}
+  header h1{font-size:18px;font-weight:800}
+  header .sub{font-size:11.5px;color:#bfe6d6;font-weight:600}
+  header .right{margin-left:auto;display:flex;align-items:center;gap:12px}
+  .toggle{display:flex;align-items:center;gap:7px;font-size:11.5px;font-weight:800}
+  .sw{width:42px;height:25px;border-radius:999px;background:rgba(255,255,255,.25);position:relative;cursor:pointer;transition:.2s}
+  .sw.on{background:#7be0b0}.sw i{position:absolute;top:3px;left:3px;width:19px;height:19px;border-radius:50%;background:#fff;transition:.2s}.sw.on i{left:20px}
+  .logout{background:rgba(255,255,255,.16);border:0;color:#fff;font:inherit;font-weight:700;font-size:12px;padding:7px 12px;border-radius:9px;cursor:pointer}
+
+  .wrap{max-width:760px;margin:0 auto;padding:20px}
+
+  /* auth */
+  .auth{max-width:380px;margin:50px auto;background:#fff;border:1px solid var(--line);border-radius:18px;padding:26px}
+  .auth h2{font-size:20px;font-weight:800;margin-bottom:4px}
+  .auth p{font-size:13px;color:var(--muted);font-weight:600;margin-bottom:18px}
+  .auth label{font-size:11px;font-weight:800;text-transform:uppercase;color:var(--muted);display:block;margin:0 0 6px}
+  .auth input{width:100%;border:1.5px solid var(--line);border-radius:11px;padding:12px;font:inherit;font-size:14px;font-weight:600;margin-bottom:14px;outline:0}
+  .auth input:focus{border-color:var(--brand)}
+  .auth button{width:100%;border:0;background:var(--brand);color:#fff;border-radius:12px;padding:14px;font:inherit;font-weight:800;font-size:15px;cursor:pointer}
+  .auth .switch{text-align:center;margin-top:14px;font-size:13px;font-weight:600;color:var(--muted)}
+  .auth .switch a{color:var(--brand-d);font-weight:800;cursor:pointer}
+  .auth .err{background:#fffaf8;border:1px solid #f1cabf;color:#8a3322;border-radius:10px;padding:10px;font-size:12.5px;font-weight:600;margin-bottom:14px}
+
+  /* tabs */
+  .tabs{display:flex;gap:7px;margin:4px 0 16px;flex-wrap:wrap}
+  .tab{border:1.5px solid var(--line);background:#fff;border-radius:999px;padding:8px 14px;font-size:12.5px;font-weight:800;color:var(--muted);cursor:pointer}
+  .tab.on{background:var(--ink);color:#fff;border-color:var(--ink)}
+  .tab .n{background:var(--accent);color:#fff;font-size:10px;border-radius:999px;padding:1px 6px;margin-left:5px}
+
+  .ord{background:#fff;border:1px solid var(--line);border-radius:16px;padding:15px;margin-bottom:13px}
+  .ord .r1{display:flex;align-items:center;gap:9px}
+  .ord .oid{font-weight:800;font-size:15px}
+  .st{font-size:10.5px;font-weight:800;padding:4px 9px;border-radius:999px}
+  .st-routed{background:#FCE9E5;color:#b73a26}.st-preparing{background:var(--amber-soft);color:var(--amber-d)}
+  .st-ready{background:var(--brand-soft);color:var(--brand-d)}.st-other{background:#eef1ee;color:var(--muted)}
+  .ord .when{margin-left:auto;font-size:11.5px;color:var(--muted);font-weight:700}
+  .ord .cust{font-size:12.5px;color:#46524c;font-weight:600;margin-top:9px}
+  .ord .items{margin-top:10px;border-top:1px dashed var(--line);padding-top:10px}
+  .ord .it{font-size:13px;font-weight:600;padding:2px 0}
+  .ord .it b{font-weight:800}
+  .ord .foot{display:flex;align-items:center;margin-top:12px;gap:10px}
+  .ord .tot{font-weight:800;font-size:16px}
+  .ord .act{margin-left:auto;border:0;border-radius:11px;padding:11px 18px;font:inherit;font-weight:800;font-size:13.5px;cursor:pointer;color:#fff}
+  .act.accept{background:var(--brand)}.act.ready{background:var(--amber)}
+  .waiting{margin-left:auto;font-size:12px;font-weight:800;color:var(--brand-d)}
+
+  .empty{text-align:center;color:var(--muted);font-weight:600;padding:40px;font-size:14px}
+  .bar{display:flex;align-items:center;margin-bottom:14px}
+  .bar h2{font-size:18px;font-weight:800}
+  .refresh{margin-left:auto;border:1.5px solid var(--line);background:#fff;border-radius:10px;padding:8px 13px;font:inherit;font-weight:800;font-size:12.5px;cursor:pointer}
+</style>
+</head>
+<body>
+  <div id="app"></div>
+
+<script>
+const db = supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+const EMOJI = { Chicken:'🍗', Mutton:'🥩', 'Seer Fish':'🐟', Prawns:'🦐' };
+let session=null, hub=null, orders=[], itemsByOrder={}, filter='routed', poll=null;
+const app = () => document.getElementById('app');
+const money = n => '₹'+Number(n||0).toLocaleString('en-IN');
+
+// ---------- boot ----------
+(async function(){
+  const { data } = await db.auth.getSession();
+  session = data.session;
+  if (session) enterDashboard(); else showAuth();
+})();
+
+// ---------- auth ----------
+let mode='login';
+function showAuth(err){
+  clearInterval(poll);
+  app().innerHTML = `
+   <header><div class="top"><div class="logo">🏪</div><div><h1>TAQOW Hub</h1><div class="sub">Vendor login</div></div></div></header>
+   <div class="auth">
+     <h2>${mode==='login'?'Log in':'Create your hub account'}</h2>
+     <p>${mode==='login'?'Welcome back. Sign in to see your orders.':'Sign up once — you’ll be linked to your hub automatically.'}</p>
+     ${err?`<div class="err">${err}</div>`:''}
+     <label>Email</label><input id="email" type="email" placeholder="you@example.com">
+     <label>Password</label><input id="pass" type="password" placeholder="At least 6 characters">
+     <button onclick="${mode==='login'?'doLogin()':'doSignup()'}">${mode==='login'?'Log in':'Create account'}</button>
+     <div class="switch">${mode==='login'
+        ? `New butcher? <a onclick="setMode('signup')">Create an account</a>`
+        : `Already have one? <a onclick="setMode('login')">Log in</a>`}</div>
+   </div>`;
+}
+function setMode(m){ mode=m; showAuth(); }
+
+async function doSignup(){
+  const email=document.getElementById('email').value.trim();
+  const password=document.getElementById('pass').value;
+  if(!email||password.length<6){ showAuth('Enter an email and a password of 6+ characters.'); return; }
+  const { data, error } = await db.auth.signUp({ email, password });
+  if(error){ showAuth(error.message); return; }
+  if(!data.session){ showAuth('Account made, but email confirmation is still ON. Turn it off in Supabase → Authentication → Providers → Email, then log in.'); mode='login'; return; }
+  session=data.session; enterDashboard();
+}
+async function doLogin(){
+  const email=document.getElementById('email').value.trim();
+  const password=document.getElementById('pass').value;
+  const { data, error } = await db.auth.signInWithPassword({ email, password });
+  if(error){ showAuth(error.message); return; }
+  session=data.session; enterDashboard();
+}
+async function doLogout(){ clearInterval(poll); await db.auth.signOut(); session=null; hub=null; showAuth(); }
+
+// ---------- dashboard ----------
+async function enterDashboard(){
+  const user = session.user;
+  // make sure this user has a profile row (role vendor)
+  await db.from('profiles').upsert({ id:user.id, role:'vendor', full_name:user.email });
+
+  // find the hub this vendor owns…
+  let { data:owned } = await db.from('hubs').select('*').eq('owner_id', user.id);
+  if (owned && owned.length){ hub = owned[0]; }
+  else {
+    // …or claim an unowned hub (single-hub MVP)
+    const { data:free } = await db.from('hubs').select('*').is('owner_id', null).limit(1);
+    if (free && free.length){
+      await db.from('hubs').update({ owner_id:user.id }).eq('id', free[0].id);
+      hub = { ...free[0], owner_id:user.id };
+    }
+  }
+  if(!hub){ app().innerHTML = `<div class="empty">No hub is assigned to this account yet.</div>`; return; }
+
+  await loadOrders();
+  clearInterval(poll); poll = setInterval(loadOrders, 12000); // auto-refresh every 12s
+}
+
+async function loadOrders(){
+  const { data:ords } = await db.from('orders').select('*').eq('hub_id', hub.id).order('created_at',{ascending:false});
+  orders = ords || [];
+  itemsByOrder = {};
+  if (orders.length){
+    const ids = orders.map(o=>o.id);
+    const { data:items } = await db.from('order_items').select('*').in('order_id', ids);
+    (items||[]).forEach(it=>{ (itemsByOrder[it.order_id] ||= []).push(it); });
+  }
+  renderDashboard();
+}
+
+function renderDashboard(){
+  const count = s => orders.filter(o=>o.status===s).length;
+  const online = hub.is_online;
+  const shown = orders.filter(o => filter==='all' ? true : o.status===filter);
+
+  app().innerHTML = `
+   <header><div class="top"><div class="logo">🏪</div>
+     <div><h1>${hub.name}</h1><div class="sub">${hub.address||''}</div></div>
+     <div class="right">
+       <div class="toggle">${online?'Online':'Offline'}<div class="sw ${online?'on':''}" onclick="toggleOnline()"><i></i></div></div>
+       <button class="logout" onclick="doLogout()">Log out</button>
+     </div></div></header>
+   <div class="wrap">
+     <div class="tabs">
+       <div class="tab ${filter==='routed'?'on':''}" onclick="setFilter('routed')">New <span class="n">${count('routed')}</span></div>
+       <div class="tab ${filter==='preparing'?'on':''}" onclick="setFilter('preparing')">Preparing <span class="n">${count('preparing')}</span></div>
+       <div class="tab ${filter==='ready'?'on':''}" onclick="setFilter('ready')">Ready <span class="n">${count('ready')}</span></div>
+       <div class="tab ${filter==='all'?'on':''}" onclick="setFilter('all')">All</div>
+     </div>
+     <div class="bar"><h2>${({routed:'New orders',preparing:'Being prepared',ready:'Ready for pickup',all:'All orders'})[filter]}</h2>
+       <button class="refresh" onclick="loadOrders()">↻ Refresh</button></div>
+     <div id="list"></div>
+   </div>`;
+
+  const list = document.getElementById('list');
+  if(!shown.length){ list.innerHTML = `<div class="empty">Nothing here right now.</div>`; return; }
+
+  list.innerHTML = shown.map(o=>{
+    const its = itemsByOrder[o.id]||[];
+    const stCls = ({routed:'st-routed',preparing:'st-preparing',ready:'st-ready'})[o.status]||'st-other';
+    const stLbl = ({routed:'NEW',preparing:'PREPARING',ready:'READY'})[o.status]||o.status.toUpperCase();
+    let action='';
+    if(o.status==='routed')      action=`<button class="act accept" onclick="setStatus('${o.id}','preparing')">Accept order</button>`;
+    else if(o.status==='preparing') action=`<button class="act ready" onclick="setStatus('${o.id}','ready')">Mark ready ✓</button>`;
+    else if(o.status==='ready')   action=`<span class="waiting">Waiting for rider 🛵</span>`;
+    const when = new Date(o.created_at).toLocaleString('en-IN',{hour:'2-digit',minute:'2-digit',day:'2-digit',month:'short'});
+    return `<div class="ord">
+      <div class="r1"><span class="oid">#${o.id.slice(0,8)}</span><span class="st ${stCls}">${stLbl}</span><span class="when">${when}</span></div>
+      <div class="cust">👤 ${o.delivery_addr||''} · 📍 ${o.delivery_pincode||''}</div>
+      <div class="items">${its.map(i=>`<div class="it">${EMOJI[i.name]||'🍖'} <b>${i.name}</b> — ${i.cut||''} × ${i.qty} <span style="color:var(--muted)">(${money(i.unit_price*i.qty)})</span></div>`).join('')||'<div class="it" style="color:var(--muted)">No item details</div>'}</div>
+      <div class="foot"><span class="tot">${money(o.total)}</span>${action}</div>
+    </div>`;
+  }).join('');
+}
+
+function setFilter(f){ filter=f; renderDashboard(); }
+async function setStatus(id, status){
+  const { error } = await db.from('orders').update({ status }).eq('id', id);
+  if(error){ alert(error.message); return; }
+  await loadOrders();
+}
+async function toggleOnline(){
+  const { error } = await db.from('hubs').update({ is_online: !hub.is_online }).eq('id', hub.id);
+  if(error){ alert(error.message); return; }
+  hub.is_online = !hub.is_online; renderDashboard();
+}
+</script>
+</body>
+</html>
