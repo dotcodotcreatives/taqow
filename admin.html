@@ -1,0 +1,232 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8"/>
+<meta name="viewport" content="width=device-width, initial-scale=1"/>
+<title>TAQOW — Admin</title>
+
+<script>
+  const SUPABASE_URL      = "https://ziugllmczrxmzeygsrnd.supabase.co";
+  const SUPABASE_ANON_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InppdWdsbG1jenJ4bXpleWdzcm5kIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODIzMTkyMzYsImV4cCI6MjA5Nzg5NTIzNn0.zBSKepzk3DDwMr6aq_8c8NjQ8r_NO83tsxmlhaB9x-g";
+</script>
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+
+<style>
+  :root{
+    --ink:#15201B; --paper:#F4F6F3; --surface:#fff;
+    --brand:#0B6E4F; --brand-d:#075B41; --brand-soft:#E4F1EB;
+    --accent:#E8503A; --accent-soft:#FCE9E5; --accent-d:#b73a26;
+    --amber:#E8A23A; --amber-soft:#FBF0DC; --amber-d:#9a6a13;
+    --blue:#2f5bd0; --blue-soft:#e7eefc;
+    --line:#E7EBE6; --muted:#7C8983; --soft:#F7F9F7; --mono:ui-monospace,monospace;
+  }
+  *{box-sizing:border-box;margin:0}
+  body{font-family:system-ui,-apple-system,'Segoe UI',sans-serif;background:var(--paper);color:var(--ink)}
+  header{background:linear-gradient(180deg,#15201B,#243a30);color:#fff;padding:15px 22px}
+  header .top{display:flex;align-items:center;gap:11px;max-width:1080px;margin:0 auto}
+  header .logo{width:38px;height:38px;border-radius:11px;background:var(--brand);display:grid;place-items:center;font-size:19px}
+  header h1{font-size:18px;font-weight:800}
+  header .sub{font-size:11.5px;color:#9be7c4;font-weight:700}
+  header .logout{margin-left:auto;background:rgba(255,255,255,.14);border:0;color:#fff;font:inherit;font-weight:700;font-size:12px;padding:7px 12px;border-radius:9px;cursor:pointer}
+  .wrap{max-width:1080px;margin:0 auto;padding:20px 22px}
+
+  .auth{max-width:380px;margin:50px auto;background:#fff;border:1px solid var(--line);border-radius:18px;padding:26px}
+  .auth h2{font-size:20px;font-weight:800;margin-bottom:4px}
+  .auth p{font-size:13px;color:var(--muted);font-weight:600;margin-bottom:18px}
+  .auth label{font-size:11px;font-weight:800;text-transform:uppercase;color:var(--muted);display:block;margin:0 0 6px}
+  .auth input{width:100%;border:1.5px solid var(--line);border-radius:11px;padding:12px;font:inherit;font-size:14px;font-weight:600;margin-bottom:14px;outline:0}
+  .auth input:focus{border-color:var(--brand)}
+  .auth button{width:100%;border:0;background:var(--ink);color:#fff;border-radius:12px;padding:14px;font:inherit;font-weight:800;font-size:15px;cursor:pointer}
+  .auth .switch{text-align:center;margin-top:14px;font-size:13px;font-weight:600;color:var(--muted)}
+  .auth .switch a{color:var(--brand-d);font-weight:800;cursor:pointer}
+  .auth .err{background:#fffaf8;border:1px solid #f1cabf;color:#8a3322;border-radius:10px;padding:10px;font-size:12.5px;font-weight:600;margin-bottom:14px}
+
+  .gate{max-width:520px;margin:40px auto;background:#fff;border:1px solid var(--line);border-radius:18px;padding:26px}
+  .gate h2{font-size:20px;font-weight:800;margin-bottom:8px}
+  .gate p{font-size:13.5px;color:#46524c;font-weight:600;line-height:1.55;margin-bottom:14px}
+  .gate code{display:block;background:var(--ink);color:#9be7c4;font-family:var(--mono);font-size:12.5px;padding:13px;border-radius:10px;word-break:break-all;margin-bottom:14px}
+  .gate button{border:0;background:var(--brand);color:#fff;border-radius:11px;padding:11px 16px;font:inherit;font-weight:800;cursor:pointer}
+
+  .kpis{display:grid;grid-template-columns:repeat(5,1fr);gap:12px;margin-bottom:20px}
+  @media(max-width:760px){.kpis{grid-template-columns:1fr 1fr}}
+  .kpi{background:#fff;border:1px solid var(--line);border-radius:15px;padding:14px}
+  .kpi .l{font-size:10.5px;font-weight:800;text-transform:uppercase;letter-spacing:.04em;color:var(--muted)}
+  .kpi .v{font-size:26px;font-weight:800;margin-top:5px}
+  .kpi .v small{font-size:13px;color:var(--muted);font-weight:700}
+
+  .panel{background:#fff;border:1px solid var(--line);border-radius:16px;overflow:hidden;margin-bottom:18px}
+  .panel .ph{display:flex;align-items:center;gap:10px;padding:13px 16px;border-bottom:1px solid var(--line)}
+  .panel .ph h3{font-size:15px;font-weight:800}
+  .panel .ph .refresh{margin-left:auto;border:1.5px solid var(--line);background:#fff;border-radius:9px;padding:7px 11px;font:inherit;font-weight:800;font-size:12px;cursor:pointer}
+  .tablewrap{overflow-x:auto}
+  table{width:100%;border-collapse:collapse;min-width:680px}
+  th{text-align:left;font-size:10px;font-weight:800;text-transform:uppercase;letter-spacing:.04em;color:var(--muted);padding:10px 14px;background:var(--soft);border-bottom:1px solid var(--line)}
+  td{padding:11px 14px;font-size:12.5px;font-weight:600;border-bottom:1px solid #f1f4f1;white-space:nowrap}
+  tr:last-child td{border-bottom:0}
+  .oid{font-family:var(--mono);font-weight:700;font-size:11.5px}
+  .stsel{border:1.5px solid var(--line);border-radius:8px;padding:5px 7px;font:inherit;font-size:11.5px;font-weight:800;background:#fff}
+  .dot{display:inline-block;width:8px;height:8px;border-radius:50%;margin-right:5px}
+  .grid2{display:grid;grid-template-columns:1fr 1fr;gap:18px}
+  @media(max-width:760px){.grid2{grid-template-columns:1fr}}
+  .lrow{display:flex;align-items:center;gap:10px;padding:11px 16px;border-bottom:1px solid #f1f4f1;font-size:13px;font-weight:600}
+  .lrow:last-child{border-bottom:0}
+  .lrow .pill{margin-left:auto;font-size:10.5px;font-weight:800;padding:3px 9px;border-radius:999px}
+  .on{background:var(--brand-soft);color:var(--brand-d)}.off{background:#eef1ee;color:var(--muted)}
+  .empty{text-align:center;color:var(--muted);font-weight:600;padding:26px;font-size:13px}
+</style>
+</head>
+<body>
+  <div id="app"></div>
+
+<script>
+const db = supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+let session=null, me=null, poll=null;
+let orders=[], itemsByOrder={}, hubs=[], profiles=[];
+const app=()=>document.getElementById('app');
+const money=n=>'₹'+Number(n||0).toLocaleString('en-IN');
+const STATUSES=['placed','routed','accepted','preparing','ready','picked_up','out_for_delivery','delivered','closed','cancelled'];
+const STCOLOR={routed:'#E8503A',preparing:'#E8A23A',ready:'#0B6E4F',picked_up:'#2f5bd0',out_for_delivery:'#2f5bd0',delivered:'#7C8983',closed:'#7C8983',cancelled:'#b73a26'};
+
+(async function(){
+  const { data } = await db.auth.getSession();
+  session=data.session;
+  if(session){ me=session.user; checkAdmin(); } else showAuth();
+})();
+
+// ---------- auth ----------
+let mode='login';
+function showAuth(err){
+  clearInterval(poll);
+  app().innerHTML=`
+   <header><div class="top"><div class="logo">📊</div><div><h1>TAQOW Admin</h1><div class="sub">Operator console</div></div></div></header>
+   <div class="auth">
+     <h2>${mode==='login'?'Admin log in':'Create admin account'}</h2>
+     <p>${mode==='login'?'Sign in to your operator console.':'Sign up, then promote this account to admin.'}</p>
+     ${err?`<div class="err">${err}</div>`:''}
+     <label>Email</label><input id="email" type="email" placeholder="you@taqow.com">
+     <label>Password</label><input id="pass" type="password" placeholder="At least 6 characters">
+     <button onclick="${mode==='login'?'doLogin()':'doSignup()'}">${mode==='login'?'Log in':'Create account'}</button>
+     <div class="switch">${mode==='login'?`Need an account? <a onclick="setMode('signup')">Create one</a>`:`Have one? <a onclick="setMode('login')">Log in</a>`}</div>
+   </div>`;
+}
+function setMode(m){ mode=m; showAuth(); }
+async function doSignup(){
+  const email=document.getElementById('email').value.trim(), password=document.getElementById('pass').value;
+  if(!email||password.length<6){ showAuth('Enter email + 6-char password.'); return; }
+  const { data, error }=await db.auth.signUp({email,password});
+  if(error){ showAuth(error.message); return; }
+  if(!data.session){ showAuth('Account made, but email confirmation is ON. Turn it off in Supabase → Authentication → Providers → Email, then log in.'); mode='login'; return; }
+  session=data.session; me=session.user; checkAdmin();
+}
+async function doLogin(){
+  const email=document.getElementById('email').value.trim(), password=document.getElementById('pass').value;
+  const { data, error }=await db.auth.signInWithPassword({email,password});
+  if(error){ showAuth(error.message); return; }
+  session=data.session; me=session.user; checkAdmin();
+}
+async function doLogout(){ clearInterval(poll); await db.auth.signOut(); session=null; me=null; showAuth(); }
+
+// ---------- admin gate ----------
+async function checkAdmin(){
+  // make sure a profile row exists (don't force a role here)
+  await db.from('profiles').upsert({ id:me.id, full_name:me.email }, { onConflict:'id' });
+  const { data:prof } = await db.from('profiles').select('role').eq('id', me.id).single();
+  if(prof && prof.role==='admin'){ enterDashboard(); }
+  else showGate();
+}
+function showGate(){
+  app().innerHTML=`
+   <header><div class="top"><div class="logo">📊</div><div><h1>TAQOW Admin</h1><div class="sub">${me.email}</div></div>
+     <button class="logout" onclick="doLogout()">Log out</button></div></header>
+   <div class="gate">
+     <h2>One step to unlock admin 🔑</h2>
+     <p>This account isn't an admin yet. In Supabase → <b>SQL Editor</b>, paste the line below and click Run, then come back and press “I've done it”.</p>
+     <code>update profiles set role='admin' where id='${me.id}';</code>
+     <button onclick="checkAdmin()">I've done it — check again</button>
+   </div>`;
+}
+
+// ---------- dashboard ----------
+async function enterDashboard(){ await loadAll(); clearInterval(poll); poll=setInterval(loadAll,12000); }
+async function loadAll(){
+  const [oRes,hRes,pRes] = await Promise.all([
+    db.from('orders').select('*').order('created_at',{ascending:false}),
+    db.from('hubs').select('*'),
+    db.from('profiles').select('*')
+  ]);
+  orders=oRes.data||[]; hubs=hRes.data||[]; profiles=pRes.data||[];
+  itemsByOrder={};
+  if(orders.length){
+    const { data:items } = await db.from('order_items').select('*').in('order_id', orders.map(o=>o.id));
+    (items||[]).forEach(it=>{ (itemsByOrder[it.order_id] ||= []).push(it); });
+  }
+  render();
+}
+
+function render(){
+  const hubName = id => (hubs.find(h=>h.id===id)||{}).name || '—';
+  const riderEmail = id => (profiles.find(p=>p.id===id)||{}).full_name || '—';
+  const live = orders.filter(o=>!['delivered','closed','cancelled'].includes(o.status)).length;
+  const today = new Date().toDateString();
+  const ordersToday = orders.filter(o=>new Date(o.created_at).toDateString()===today).length;
+  const gmv = orders.filter(o=>o.status==='delivered').reduce((s,o)=>s+Number(o.total||0),0);
+  const riders = profiles.filter(p=>p.role==='rider').length;
+
+  app().innerHTML=`
+   <header><div class="top"><div class="logo">📊</div><div><h1>TAQOW Admin</h1><div class="sub">Operator console · ${me.email}</div></div>
+     <button class="logout" onclick="doLogout()">Log out</button></div></header>
+   <div class="wrap">
+     <div class="kpis">
+       <div class="kpi"><div class="l">Live orders</div><div class="v">${live}</div></div>
+       <div class="kpi"><div class="l">Orders today</div><div class="v">${ordersToday}</div></div>
+       <div class="kpi"><div class="l">GMV (delivered)</div><div class="v">${money(gmv)}</div></div>
+       <div class="kpi"><div class="l">Hubs</div><div class="v">${hubs.length}</div></div>
+       <div class="kpi"><div class="l">Riders</div><div class="v">${riders}</div></div>
+     </div>
+
+     <div class="panel">
+       <div class="ph"><h3>All orders</h3><button class="refresh" onclick="loadAll()">↻ Refresh</button></div>
+       <div class="tablewrap"><table>
+         <thead><tr><th>Order</th><th>Items</th><th>Customer</th><th>Hub</th><th>Rider</th><th>Total</th><th>When</th><th>Status</th></tr></thead>
+         <tbody>${orders.length? orders.map(o=>{
+           const its=(itemsByOrder[o.id]||[]).map(i=>`${i.name}×${i.qty}`).join(', ');
+           const when=new Date(o.created_at).toLocaleString('en-IN',{hour:'2-digit',minute:'2-digit',day:'2-digit',month:'short'});
+           return `<tr>
+             <td class="oid">#${o.id.slice(0,8)}</td>
+             <td>${its||'—'}</td>
+             <td>${(o.delivery_addr||'—').slice(0,28)}</td>
+             <td>${hubName(o.hub_id)}</td>
+             <td>${riderEmail(o.rider_id)}</td>
+             <td><b>${money(o.total)}</b></td>
+             <td>${when}</td>
+             <td><select class="stsel" onchange="overrideStatus('${o.id}', this.value)">
+               ${STATUSES.map(s=>`<option ${o.status===s?'selected':''}>${s}</option>`).join('')}
+             </select></td>
+           </tr>`;
+         }).join('') : `<tr><td colspan="8"><div class="empty">No orders yet.</div></td></tr>`}</tbody>
+       </table></div>
+     </div>
+
+     <div class="grid2">
+       <div class="panel">
+         <div class="ph"><h3>Hubs</h3></div>
+         ${hubs.length? hubs.map(h=>`<div class="lrow">🏪 <b>${h.name}</b> <span style="color:var(--muted)">${h.pincode||''}</span>
+           <span class="pill ${h.is_online?'on':'off'}">${h.is_online?'ONLINE':'OFFLINE'}</span></div>`).join('') : `<div class="empty">No hubs</div>`}
+       </div>
+       <div class="panel">
+         <div class="ph"><h3>People</h3></div>
+         ${profiles.length? profiles.map(p=>`<div class="lrow">${p.role==='rider'?'🛵':p.role==='vendor'?'🏪':p.role==='admin'?'🛡️':'👤'} <b>${p.full_name||'—'}</b>
+           <span class="pill off">${(p.role||'customer').toUpperCase()}</span></div>`).join('') : `<div class="empty">No people</div>`}
+       </div>
+     </div>
+   </div>`;
+}
+
+async function overrideStatus(id, status){
+  const { error } = await db.from('orders').update({ status }).eq('id', id);
+  if(error){ alert(error.message); return; }
+  await loadAll();
+}
+</script>
+</body>
+</html>
